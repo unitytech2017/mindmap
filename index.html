@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Gist 연동 마인드맵</title>
+  <style>
+    /* 전역 스타일 */
+    :root {
+      --primary-color: #4a90e2;
+      --secondary-color: #50c878;
+      --text-color: #333;
+      --background-color: #f8f9fa;
+      --node-background: #fff;
+      --node-border: #ddd;
+      --node-selected: #e5f3ff;
+      --root-node-background: #f0f8ff;
+      --github-color: #24292e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text-color);
+      background-color: var(--background-color);
+      line-height: 1.6;
+    }
+
+    .banner {
+      background-color: var(--github-color);
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: var(--primary-color);
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 8px 16px;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 20px;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .btn.save-btn {
+      background-color: #28a745;
+    }
+
+    .btn.load-btn {
+      background-color: #17a2b8;
+    }
+    
+    .btn.github-btn {
+      background-color: var(--github-color);
+    }
+    
+    .btn.download-btn {
+      background-color: #6c757d;
+    }
+
+    /* 파일 입력 스타일 */
+    .file-input-container {
+      display: inline-block;
+      position: relative;
+      margin-right: 10px;
+    }
+
+    .file-input {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    /* 마인드맵 스타일 */
+    .mind-map-container {
+      width: 100%;
+      height: 70vh;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: auto;
+      position: relative;
+      background-color: #f9f9f9;
+    }
+
+    .mind-map {
+      position: relative;
+      width: 2000px;
+      height: 1500px;
+    }
+
+    .mind-map-node {
+      position: absolute;
+      width: 150px;
+      min-height: 50px;
+      padding: 10px;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    .mind-map-node.root {
+      background-color: var(--root-node-background);
+      border-color: var(--primary-color);
+    }
+
+    .mind-map-node.selected {
+      box-shadow: 0 0 0 2px var(--primary-color);
+      background-color: var(--node-selected);
+    }
+
+    .node-text {
+      font-size: 14px;
+      word-break: break-word;
+    }
+
+    .node-input {
+      width: 100%;
+      border: none;
+      outline: none;
+      background-color: transparent;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .mind-map-edge {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    .context-menu {
+      position: absolute;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      min-width: 150px;
+    }
+
+    .context-menu-item {
+      padding: 8px 15px;
+      cursor: pointer;
+    }
+
+    .context-menu-item:hover {
+      background-color: var(--node-selected);
+    }
+
+    .instructions {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #e9ecef;
+      border-radius: 8px;
+    }
+
+    .instructions h2 {
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+
+    .instructions ul {
+      margin-left: 20px;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-style: italic;
+      color: #666;
+    }
+
+    .github-login {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f0f0f0;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+
+    .github-info {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .github-info.logged-in {
+      display: block;
+    }
+
+    .url-input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid var(--primary-color);
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    #error-message {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+      display: none;
+    }
+    
+    #success-message {
+      background-color: #d4edda;
+      color: #155724;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+      display: none;
+    }
+    
+    /* Gist 목록 스타일 */
+    .gist-list {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+      display: none;
+    }
+    
+    .gist-list.visible {
+      display: block;
+    }
+    
+    .gist-item {
+      padding: 10px 15px;
+      border-bottom: 1px solid #ddd;
+      background-color: white;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .gist-item:last-child {
+      border-bottom: none;
+    }
+    
+    .gist-item:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .gist-item-controls {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .gist-item-control {
+      color: var(--primary-color);
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .gist-item-control:hover {
+      text-decoration: underline;
+    }
+    
+    .gist-item-date {
+      color: #666;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-content {
+      background-color: white;
+      margin: 15% auto;
+      padding: 20px;
+      border-radius: 5px;
+      width: 50%;
+      max-width: 500px;
+    }
+    
+    .modal-close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .modal-close:hover {
+      color: black;
+    }
+    
+    #gist-name-input {
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .modal-buttons {
+      text-align: right;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    GitHub Gist 연동 마인드맵
+  </div>
+
+  <div class="container">
+    <h1>마인드맵</h1>
+    
+    <div id="error-message"></div>
+    <div id="success-message"></div>
+    
+    <div class="action-buttons">
+      <button id="add-node-btn" class="btn">새 노드 추가</button>
+      <button id="edit-node-btn" class="btn">선택 노드 편집</button>
+      <button id="clear-btn" class="btn">초기화</button>
+      <button id="download-btn" class="btn download-btn">파일로 저장</button>
+      <div class="file-input-container">
+        <button class="btn">파일에서 불러오기</button>
+        <input type="file" id="upload-file" class="file-input" accept=".json">
+      </div>
+    </div>
+    
+    <div class="github-login">
+      <h2>GitHub 연동</h2>
+      <p>GitHub Gist를 사용하여 마인드맵을 저장하고 불러올 수 있습니다.</p>
+      <div id="github-login-section">
+        <p>GitHub 인증 토큰을 입력하세요:</p>
+        <input type="text" id="github-token" class="url-input" placeholder="GitHub Personal Access Token">
+        <button id="github-login-btn" class="btn github-btn">로그인</button>
+        <p><small>토큰 생성 방법: <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings > Developer settings > Personal access tokens</a>에서 'gist' 권한이 있는 토큰을 생성하세요.</small></p>
+      </div>
+      <div id="github-info" class="github-info">
+        <p><strong>로그인됨!</strong> 이제 Gist를 사용하여 마인드맵을 저장하고 불러올 수 있습니다.</p>
+        <div class="action-buttons">
+          <button id="save-gist-btn" class="btn save-btn">Gist로 저장</button>
+          <button id="load-gist-btn" class="btn load-btn">Gist 목록 보기</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="gist-list" class="gist-list">
+      <h3>마인드맵 목록</h3>
+      <!-- Gist 목록이 여기에 표시됩니다 -->
+    </div>
+    
+    <p class="status">현재 선택된 노드: <span id="selected-node-status">없음</span></p>
+    
+    <div class="mind-map-container">
+      <div class="mind-map" id="mind-map">
+        <!-- 마인드맵이 여기에 렌더링됩니다 -->
+      </div>
+    </div>
+
+    <div class="instructions">
+      <h2>사용법</h2>
+      <ul>
+        <li>노드를 <strong>클릭</strong>하여 선택할 수 있습니다.</li>
+        <li>노드에서 <strong>오른쪽 클릭</strong>하여 하위 노드 추가나 삭제 옵션을 볼 수 있습니다.</li>
+        <li>노드를 <strong>더블 클릭</strong>하거나 '선택 노드 편집' 버튼을 클릭하여 텍스트를 편집할 수 있습니다.</li>
+        <li><strong>드래그</strong>하여 노드를 이동할 수 있습니다.</li>
+        <li>"<strong>새 노드 추가</strong>" 버튼을 클릭하면 선택된 노드에 하위 노드가 추가됩니다.</li>
+        <li>"<strong>Gist로 저장</strong>" 버튼을 클릭하면 현재 마인드맵이 GitHub Gist에 저장됩니다.</li>
+        <li>"<strong>Gist 목록 보기</strong>" 버튼을 클릭하면 저장된 마인드맵 목록을 볼 수 있습니다.</li>
+      </ul>
+    </div>
+  </div>
+  
+  <!-- 저장 모달 -->
+  <div id="save-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h2>마인드맵 저장</h2>
+      <p>마인드맵의 이름을 입력하세요:</p>
+      <input type="text" id="gist-name-input" placeholder="마인드맵 이름">
+      <div class="modal-buttons">
+        <button id="save-gist-confirm" class="btn save-btn">저장</button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="loading-overlay" class="hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <script>
+    // 마인드맵 구현
+    document.addEventListener('DOMContentLoaded', function() {
+      const mindMap = document.getElementById('mind-map');
+      const addNodeBtn = document.getElementById('add-node-btn');
+      const editNodeBtn = document.getElementById('edit-node-btn');
+      const clearBtn = document.getElementById('clear-btn');
+      const selectedNodeStatus = document.getElementById('selected-node-status');
+      const loadingOverlay = document.getElementById('loading-overlay');
+      const errorMessage = document.getElementById('error-message');
+      const successMessage = document.getElementById('success-message');
+      const githubTokenInput = document.getElementById('github-token');
+      const githubLoginBtn = document.getElementById('github-login-btn');
+      const githubInfo = document.getElementById('github-info');
+      const saveGistBtn = document.getElementById('save-gist-btn');
+      const loadGistBtn = document.getElementById('load-gist-btn');
+      const gistList = document.getElementById('gist-list');
+      const downloadBtn = document.getElementById('download-btn');
+      const uploadFileInput = document.getElementById('upload-file');
+      const saveModal = document.getElementById('save-modal');
+      const modalClose = document.querySelector('.modal-close');
+      const gistNameInput = document.getElementById('gist-name-input');
+      const saveGistConfirm = document.getElementById('save-gist-confirm');
+      
+      let nodes = [];
+      let edges = [];
+      let selectedNode = null;
+      let dragNode = null;
+      let offsetX, offsetY;
+      let isEditingNode = false;
+      let githubToken = null;
+      let currentGistId = null;
+      
+      // 로컬 스토리지에서 GitHub 토큰 불러오기
+      githubToken = localStorage.getItem('githubToken');
+      if (githubToken) {
+        githubTokenInput.value = githubToken;
+        githubInfo.classList.add('logged-in');
+      }
+      
+      // 메시지 표시 함수들
+      function showError(message, duration = 5000) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+        successMessage.style.display = 'none';
+        
+        if (duration > 0) {
+          setTimeout(() => {
+            errorMessage.style.display = 'none';
+          }, duration);
+        }
+      }
+      
+      function showSuccess(message, duration = 5000) {
+        successMessage.textContent = message;
+        successMessage.style.display = 'block';
+        errorMessage.style.display = 'none';
+        
+        if (duration > 0) {
+          setTimeout(() => {
+            successMessage.style.display = 'none';
+          }, duration);
+        }
+      }
+      
+      // 로딩 표시
+      function showLoading() {
+        loadingOverlay.classList.remove('hidden');
+      }
+      
+      function hideLoading() {
+        loadingOverlay.classList.add('hidden');
+      }
+      
+      // 타임아웃으로 로딩 강제 종료
+      function setupLoadingTimeout() {
+        return setTimeout(() => {
+          hideLoading();
+          showError('요청 시간이 초과되었습니다.');
+          console.warn('로딩 타임아웃: 30초 경과');
+        }, 30000);
+      }
+      
+      // GitHub 로그인
+      githubLoginBtn.addEventListener('click', function() {
+        const token = githubTokenInput.value.trim();
+        if (!token) {
+          showError('GitHub 토큰을 입력해주세요.');
+          return;
+        }
+        
+        showLoading();
+        
+        // 토큰 유효성 확인
+        fetch('https://api.github.com/user', {
+          headers: {
+            'Authorization': `token ${token}`
+          }
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('GitHub 토큰이 유효하지 않습니다.');
+          }
+          return response.json();
+        })
+        .then(user => {
+          // 토큰 저장
+          githubToken = token;
+          localStorage.setItem('githubToken', token);
+          githubInfo.classList.add('logged-in');
+          showSuccess(`${user.login}님으로 로그인되었습니다.`);
+        })
+        .catch(error => {
+          console.error('GitHub 로그인 오류:', error);
+          showError('GitHub 로그인에 실패했습니다: ' + error.message);
+        })
+        .finally(() => {
+          hideLoading();
+        });
+      });
+      
+      // 초기 루트 노드 생성
+      function initMindMap() {
+        nodes = [{
+          id: 'root',
+          text: '메인 아이디어',
+          x: 900,
+          y: 650,
+          type: 'root'
+        }];
+        edges = [];
+        selectedNode = null;
+        updateSelectedNodeStatus();
+        renderMindMap();
+        showSuccess('마인드맵이 초기화되었습니다.');
+      }
+
+      // 선택된 노드 상태 업데이트
+      function updateSelectedNodeStatus() {
+        if (selectedNode) {
+          const node = nodes.find(n => n.id === selectedNode);
+          selectedNodeStatus.textContent = node ? node.text : '없음';
+        } else {
+          selectedNodeStatus.textContent = '없음';
+        }
+      }
+
+      // 마인드맵 렌더링
+      function renderMindMap() {
+        // 기존 노드와 엣지 제거
+        mindMap.innerHTML = '';
+        
+        // 엣지 렌더링
+        const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svgContainer.classList.add('mind-map-edge');
+        mindMap.appendChild(svgContainer);
+        
+        edges.forEach(edge => {
+          const sourceNode = nodes.find(node => node.id === edge.source);
+          const targetNode = nodes.find(node => node.id === edge.target);
+          
+          if (sourceNode && targetNode) {
+            const sourceX = sourceNode.x + 75;
+            const sourceY = sourceNode.y + 25;
+            const targetX = targetNode.x + 75;
+            const targetY = targetNode.y + 25;
+            
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', sourceX);
+            line.setAttribute('y1', sourceY);
+            line.setAttribute('x2', targetX);
+            line.setAttribute('y2', targetY);
+            line.setAttribute('stroke', '#666');
+            line.setAttribute('stroke-width', '2');
+            
+            svgContainer.appendChild(line);
+          }
+        });
+        
+        // 노드 렌더링
+        nodes.forEach(node => {
+          const nodeEl = document.createElement('div');
+          nodeEl.className = `mind-map-node ${node.type || ''}`;
+          if (selectedNode === node.id) {
+            nodeEl.classList.add('selected');
+          }
+          nodeEl.style.left = `${node.x}px`;
+          nodeEl.style.top = `${node.y}px`;
+          nodeEl.dataset.id = node.id;
+          
+          const textEl = document.createElement('div');
+          textEl.className = 'node-text';
+          textEl.textContent = node.text;
+          nodeEl.appendChild(textEl);
+          
+          nodeEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleNodeClick(node.id);
+          });
+          
+          nodeEl.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleNodeContextMenu(e, node.id);
+          });
+          
+          nodeEl.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            handleNodeDoubleClick(node.id, nodeEl);
+          });
+          
+          nodeEl.addEventListener('mousedown', (e) => {
+            if (isEditingNode) return; // 편집 중이면 드래그 방지
+            e.stopPropagation();
+            handleNodeMouseDown(e, node.id);
+          });
+          
+          mindMap.appendChild(nodeEl);
+        });
+      }
+
+      // 노드 클릭 핸들러
+      function handleNodeClick(nodeId) {
+        if (isEditingNode) return; // 편집 중이면 선택 변경 방지
+        selectedNode = nodeId;
+        updateSelectedNodeStatus();
+        removeContextMenu();
+        renderMindMap();
+      }
+
+      // 노드 컨텍스트 메뉴 핸들러
+      function handleNodeContextMenu(e, nodeId) {
+        if (isEditingNode) return; // 편집 중이면 컨텍스트 메뉴 비활성화
+        
+        selectedNode = nodeId;
+        updateSelectedNodeStatus();
+        
+        // 컨텍스트 메뉴 위치 계산
+        const container = mindMap.parentElement;
+        const rect = container.getBoundingClientRect();
+        const x = e.clientX - rect.left + container.scrollLeft;
+        const y = e.clientY - rect.top + container.scrollTop;
+        
+        showContextMenu(x, y, nodeId);
+        renderMindMap();
+      }
+
+      // 노드 더블클릭 핸들러 (텍스트 편집)
+      function handleNodeDoubleClick(nodeId, nodeEl) {
+        enableNodeEditing(nodeId, nodeEl);
+      }
+      
+      // 노드 편집 활성화
+      function enableNodeEditing(nodeId, nodeEl) {
+        if (!nodeEl) {
+          // DOM에서 노드 엘리먼트 찾기
+          const allNodes = mindMap.querySelectorAll('.mind-map-node');
+          for (let i = 0; i < allNodes.length; i++) {
+            if (allNodes[i].dataset.id === nodeId) {
+              nodeEl = allNodes[i];
+              break;
+            }
+          }
+          if (!nodeEl) return; // 노드를 찾지 못함
+        }
+        
+        isEditingNode = true;
+        
+        const node = nodes.find(n => n.id === nodeId);
+        const textEl = nodeEl.querySelector('.node-text');
+        const currentText = node.text;
+        
+        // 기존 텍스트 요소 비우기
+        textEl.innerHTML = '';
+        
+        // 입력 필드 생성
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentText;
+        input.className = 'node-input';
+        textEl.appendChild(input);
+        
+        // 입력 필드 포커스
+        input.focus();
+        input.select();
+        
+        // 이벤트 핸들러 등록
+        input.addEventListener('blur', function() {
+          finishEditing(nodeId, input.value);
+        });
+        
+        input.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            finishEditing(nodeId, input.value);
+          } else if (e.key === 'Escape') {
+            finishEditing(nodeId, currentText); // 취소 - 원래 텍스트로 복원
+          }
+        });
+      }
+      
+      // 노드 편집 완료
+      function finishEditing(nodeId, text) {
+        isEditingNode = false;
+        updateNodeText(nodeId, text);
+      }
+
+      // 노드 텍스트 업데이트
+      function updateNodeText(nodeId, text) {
+        const node = nodes.find(n => n.id === nodeId);
+        if (node) {
+          node.text = text || '빈 노드';
+          updateSelectedNodeStatus();
+          renderMindMap();
+        }
+      }
+
+      // 노드 드래그 시작
+      function handleNodeMouseDown(e, nodeId) {
+        if (e.button !== 0) return; // 좌클릭만 처리
+        
+        dragNode = nodeId;
+        const nodeEl = e.currentTarget;
+        const rect = nodeEl.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+      }
+
+      // 마우스 이동 처리 (드래그)
+      function handleMouseMove(e) {
+        if (dragNode) {
+          const node = nodes.find(n => n.id === dragNode);
+          const container = mindMap.parentElement;
+          const rect = container.getBoundingClientRect();
+          
+          // 컨테이너 내 상대적 위치 계산
+          const x = e.clientX - rect.left + container.scrollLeft - offsetX;
+          const y = e.clientY - rect.top + container.scrollTop - offsetY;
+          
+          node.x = Math.max(0, Math.min(1850, x)); // 화면 밖으로 나가지 않도록
+          node.y = Math.max(0, Math.min(1450, y));
+          renderMindMap();
+        }
+      }
+
+      // 마우스 업 처리 (드래그 종료)
+      function handleMouseUp() {
+        dragNode = null;
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      }
+
+      // 컨텍스트 메뉴 표시
+      function showContextMenu(x, y, nodeId) {
+        removeContextMenu();
+        
+        const contextMenu = document.createElement('div');
+        contextMenu.className = 'context-menu';
+        contextMenu.id = 'context-menu';
+        contextMenu.style.left = `${x}px`;
+        contextMenu.style.top = `${y}px`;
+        
+        const addChildItem = document.createElement('div');
+        addChildItem.className = 'context-menu-item';
+        addChildItem.textContent = '하위 노드 추가';
+        addChildItem.addEventListener('click', (e) => {
+          e.stopPropagation();
+          addChildNode(nodeId);
+          removeContextMenu();
+        });
+        contextMenu.appendChild(addChildItem);
+        
+        const editItem = document.createElement('div');
+        editItem.className = 'context-menu-item';
+        editItem.textContent = '노드 편집';
+        editItem.addEventListener('click', (e) => {
+          e.stopPropagation();
+          
+          // 해당 노드 요소 찾기
+          const nodeElements = mindMap.querySelectorAll('.mind-map-node');
+          let targetNodeEl = null;
+          
+          for (let i = 0; i < nodeElements.length; i++) {
+            if (nodeElements[i].dataset.id === nodeId) {
+              targetNodeEl = nodeElements[i];
+              break;
+            }
+          }
+          
+          if (targetNodeEl) {
+            enableNodeEditing(nodeId, targetNodeEl);
+          }
+          
+          removeContextMenu();
+        });
+        contextMenu.appendChild(editItem);
+        
+        // 루트 노드가 아닌 경우에만 삭제 옵션 표시
+        if (nodeId !== 'root') {
+          const deleteItem = document.createElement('div');
+          deleteItem.className = 'context-menu-item';
+          deleteItem.textContent = '노드 삭제';
+          deleteItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteNode(nodeId);
+            removeContextMenu();
+          });
+          contextMenu.appendChild(deleteItem);
+        }
+        
+        mindMap.appendChild(contextMenu);
+      }
+
+      // 컨텍스트 메뉴 제거
+      function removeContextMenu() {
+        const contextMenu = document.getElementById('context-menu');
+        if (contextMenu) {
+          contextMenu.parentNode.removeChild(contextMenu);
+        }
+      }
+
+      // 하위 노드 추가
+      function addChildNode(parentId) {
+        const parent = nodes.find(node => node.id === parentId);
+        if (!parent) return;
+        
+        // 부모 노드의 자식 노드 수 확인
+        const childCount = edges.filter(edge => edge.source === parentId).length;
+        
+        // 부모 노드를 기준으로 새 노드 위치 계산
+        let newX = parent.x + 200;
+        let newY = parent.y;
+        
+        // 자식이 여러 개 있는 경우 위치 조정
+        if (childCount > 0) {
+          newY = parent.y + (childCount % 2 === 0 ? 1 : -1) * ((childCount + 1) * 60);
+        }
+        
+        const newNodeId = `node-${Date.now()}`;
+        
+        const newNode = {
+          id: newNodeId,
+          text: '새 노드',
+          x: newX,
+          y: newY,
+          type: 'child'
+        };
+        
+        const newEdge = {
+          id: `edge-${Date.now()}`,
+          source: parentId,
+          target: newNodeId
+        };
+        
+        nodes.push(newNode);
+        edges.push(newEdge);
+        
+        selectedNode = newNodeId;
+        updateSelectedNodeStatus();
+        renderMindMap();
+        
+        // 새 노드가 보이도록 스크롤
+        const container = mindMap.parentElement;
+        container.scrollTo({
+          left: Math.max(0, newX - container.clientWidth / 2),
+          top: Math.max(0, newY - container.clientHeight / 2),
+          behavior: 'smooth'
+        });
+      }
+
+      // 노드 삭제
+      function deleteNode(nodeId) {
+        // 루트 노드는 삭제 불가
+        if (nodeId === 'root') return;
+        
+        // 자식 노드들도 함께 삭제
+        const childEdges = edges.filter(edge => edge.source === nodeId);
+        const childIds = childEdges.map(edge => edge.target);
+        
+        let nodesToDelete = [nodeId, ...childIds];
+        
+        // 재귀적으로 모든 하위 노드 찾기
+        function findAllChildren(ids) {
+          let allChildren = [];
+          
+          ids.forEach(id => {
+            const children = edges.filter(edge => edge.source === id).map(edge => edge.target);
+            if (children.length > 0) {
+              allChildren = [...allChildren, ...children, ...findAllChildren(children)];
+            }
+          });
+          
+          return allChildren;
+        }
+        
+        const allChildren = findAllChildren(childIds);
+        nodesToDelete = [...nodesToDelete, ...allChildren];
+        
+        // 노드와 엣지 필터링
+        nodes = nodes.filter(node => !nodesToDelete.includes(node.id));
+        edges = edges.filter(edge => 
+          !nodesToDelete.includes(edge.source) && !nodesToDelete.includes(edge.target)
+        );
+        
+        if (selectedNode && nodesToDelete.includes(selectedNode)) {
+          selectedNode = null;
+          updateSelectedNodeStatus();
+        }
+        
+        renderMindMap();
+      }
+      
+      // ===== GitHub Gist 연동 기능 =====
+      
+      // Gist에 마인드맵 저장
+      async function saveMindMapToGist(name) {
+        if (!githubToken) {
+          showError('GitHub 토큰이 필요합니다. 먼저 로그인해주세요.');
+          return;
+        }
+        
+        if (isEditingNode) {
+          showError('텍스트 편집을 먼저 완료해주세요.');
+          return;
+        }
+        
+        showLoading();
+        
+        // 로딩 타임아웃 설정
+        const timeoutId = setupLoadingTimeout();
+        
+        try {
+          // 마인드맵 데이터 준비
+          const data = {
+            nodes: nodes,
+            edges: edges,
+            lastModified: new Date().toISOString()
+          };
+          
+          const fileContent = JSON.stringify(data, null, 2);
+          
+          // Gist 파일 내용 구성
+          const files = {};
+          files[`${name || 'mindmap'}.json`] = {
+            content: fileContent
+          };
+          
+          const requestData = {
+            description: `마인드맵: ${name || 'Untitled'}`,
+            public: false,
+            files: files
+          };
+          
+          // 새 Gist 생성 또는 기존 Gist 업데이트
+          let url = 'https://api.github.com/gists';
+          let method = 'POST';
+          
+          if (currentGistId) {
+            url = `https://api.github.com/gists/${currentGistId}`;
+            method = 'PATCH';
+          }
+          
+          const response = await fetch(url, {
+            method: method,
+            headers: {
+              'Authorization': `token ${githubToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+          });
+          
+          if (!response.ok) {
+            throw new Error(`GitHub API 오류: ${response.status}`);
+          }
+          
+          const gistData = await response.json();
+          
+          // 현재 Gist ID 업데이트
+          currentGistId = gistData.id;
+          
+          // 타임아웃 취소
+          clearTimeout(timeoutId);
+          hideLoading();
+          
+          showSuccess(`마인드맵이 성공적으로 GitHub Gist에 저장되었습니다.`);
+        } catch (error) {
+          // 타임아웃 취소
+          clearTimeout(timeoutId);
+          hideLoading();
+          console.error('Gist 저장 중 오류 발생:', error);
+          showError('마인드맵 저장 중 오류가 발생했습니다: ' + error.message);
+        }
+      }
+      
+      // GitHub Gist 목록 가져오기
+      async function loadGistList() {
+        if (!githubToken) {
+          showError('GitHub 토큰이 필요합니다. 먼저 로그인해주세요.');
+          return;
+        }
+        
+        showLoading();
+        
+        // 로딩 타임아웃 설정
+        const timeoutId = setupLoadingTimeout();
+        
+        try {
+          const response = await fetch('https://api.github.com/gists', {
+            headers: {
+              'Authorization': `token ${githubToken}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`GitHub API 오류: ${response.status}`);
+          }
+          
+          const gists = await response.json();
+          
+          // 마인드맵 Gist만 필터링
+          const mindmapGists = gists.filter(gist => {
+            const files = Object.keys(gist.files);
+            return files.some(file => file.endsWith('.json'));
+          });
+          
+          // Gist 목록 표시
+          renderGistList(mindmapGists);
+          
+          // 타임아웃 취소
+          clearTimeout(timeoutId);
+          hideLoading();
+          
+          // Gist 목록 표시
+          gistList.classList.add('visible');
+        } catch (error) {
+          // 타임아웃 취소
+          clearTimeout(timeoutId);
+          hideLoading();
+          console.error('Gist 목록 로드 중 오류 발생:', error);
+          showError('마인드맵 목록을 가져오는 중 오류가 발생했습니다: ' + error.message);
+        }
+      }
+      
+      // Gist 목록 렌더링
+      function renderGistList(gists) {
+        gistList.innerHTML = '<h3>마인드맵 목록</h3>';
+        
+        if (gists.length === 0) {
+          const emptyMessage = document.createElement('p');
+          emptyMessage.textContent = '저장된 마인드맵이 없습니다.';
+          gistList.appendChild(emptyMessage);
+          return;
+        }
+        
+        gists.forEach(gist => {
+          const gistItem = document.createElement('div');
+          gistItem.className = 'gist-item';
+          
+          // Gist 이름 (파일 이름 또는 설명)
+          const fileName = Object.keys(gist.files)[0];
+          const gistName = document.createElement('div');
+          gistName.className = 'gist-item-name';
+          gistName.textContent = gist.description || fileName;
+          
+          // 날짜 정보
+          const date = new Date(gist.updated_at);
+          const dateString = date.toLocaleDateString('ko-KR');
+          const gistDate = document.createElement('span');
+          gistDate.className = 'gist-item-date';
+          gistDate.textContent = `(${dateString})`;
+          gistName.appendChild(gistDate);
+          
+          gistItem.appendChild(gistName);
+          
+          // 컨트롤 버튼
+          const controls = document.createElement('div');
+          controls.className = 'gist-item-controls';
+          
+          // 불러오기 버튼
+          const loadButton = document.createElement('span');
+          loadButton.className = 'gist-item-control';
+          loadButton.textContent = '불러오기';
+          loadButton.addEventListener('click', () => loadMindMapFromGist(gist.id));
+          controls.appendChild(loadButton);
+          
+          // 삭제 버튼
+          const deleteButton = document.createElement('span');
+          deleteButton.className = 'gist-item-control';
+          deleteButton.textContent = '삭제';
+          deleteButton.addEventListener('click', () => deleteGist(gist.id));
+          controls.appendChild(deleteButton);
+          
+          gistItem.appendChild(controls);
+          gistList.appendChild(gistItem);
+        });
+      }
+      
+      // Gist에서 마인드맵 불러오기
+      async function loadMindMapFromGist(gistId) {
+        if (!githubToken) {
+          showError('GitHub 토큰이 필요합니다. 먼저 로그인해주세요.');
+          return;
+        }
+        
+        if (isEditingNode) {
+          showError('텍스트 편집을 먼저 완료해주세요.');
+          return;
+        }
+        
+        showLoading();
+        
+        // 로딩 타임아웃 설정
+        const timeoutId = setupLoadingTimeout();
+        
+        try {
+          const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+            headers: {
+              'Authorization': `token ${githubToken}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`GitHub API 오류: ${response.status}`);
+          }
+          
+          const gist = await response.json();
+          
+          // 마인드맵 파일 찾기
+          const files = Object.keys(gist.files);
+          const jsonFile = files.find(file => file.endsWith('.json'));
+          
+          if (!jsonFile) {
+            throw new Error('유효한 마인드맵 파일을 찾을 수 없습니다.');
+          }
+          
+          const fileContent = gist.files[jsonFile].content;
+          
+          // JSON 파싱
+          const data = JSON.parse(fileContent);
+          
+          // 노드와 엣지 업데이트
+          if (data.nodes && data.edges) {
+            nodes = data.nodes;
+            edges = data.edges;
+            
+            // 현재 Gist ID 설정
+            currentGistId = gistId;
+            
+            // UI 업데이트
+            selectedNode = null;
+            updateSelectedNodeStatus();
+            renderMindMap();
+            
+            // Gist 목록 숨기기
+            gistList.classList.remove('visible');
+            
+            showSuccess('마인드맵을 성공적으로 불러왔습니다.');
+          } else {
+            throw new Error('유효하지 않은 마인드맵 데이터입니다.');
+          }
+          
+          // 타임아웃 취소
+          clearTimeout(timeoutId);
+          hideLoading();
+        } catch (error) {
+          // 타임아웃 취소
+          clearTimeout(timeoutId);
+          hideLoading();
+          console.error('Gist 로드 중 오류 발생:', error);
+          showError('마인드맵 불러오기 중 오류가 발생했습니다: ' + error.message);
+        }
+      }
+      
+      // Gist 삭제
+      async function deleteGist(gistId) {
+        if (!githubToken) {
+          showError('GitHub 토큰이 필요합니다. 먼저 로그인해주세요.');
+          return;
+        }
+        
+        if (!confirm('정말 이 마인드맵을 삭제하시겠습니까?')) {
+          return;
+        }
+        
+        showLoading();
+        
+        // 로딩 타임아웃 설정
+        const timeoutId = setupLoadingTimeout();
+        
+        try {
+          const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `token ${githubToken}`
+            }
+          });
+          
+          if (!response.ok && response.status !== 204) {
+            throw new Error(`GitHub API 오류: ${response.status}`);
+          }
+          
+          // 현재 Gist ID 재설정
+          if (currentGistId === gistId) {
+            currentGistId = null;
+          }
+          
+          // Gist 목록 다시 불러오기
+          await loadGistList();
+          
+          // 타임아웃 취소
+          clearTimeout(timeoutId);
+          hideLoading();
+          
+          showSuccess('마인드맵이 성공적으로 삭제되었습니다.');
+        } catch (error) {
+          // 타임아웃 취소
+          clearTimeout(timeoutId);
+          hideLoading();
+          console.error('Gist 삭제 중 오류 발생:', error);
+          showError('마인드맵 삭제 중 오류가 발생했습니다: ' + error.message);
+        }
+      }
+      
+      // 파일로 마인드맵 저장
+      function downloadMindMap() {
+        if (isEditingNode) {
+          showError('텍스트 편집을 먼저 완료해주세요.');
+          return;
+        }
+        
+        // 마인드맵 데이터 준비
+        const data = {
+          nodes: nodes,
+          edges: edges,
+          lastModified: new Date().toISOString()
+        };
+        
+        // JSON 문자열로 변환
+        const jsonString = JSON.stringify(data, null, 2);
+        
+        // Blob 생성
+        const blob = new Blob([jsonString], {type: 'application/json'});
+        
+        // 다운로드 링크 생성
+        const downloadLink = document.createElement('a');
+        downloadLink.href = URL.createObjectURL(blob);
+        downloadLink.download = `mindmap-${new Date().toISOString().slice(0,10)}.json`;
+        
+        // 링크 클릭하여 다운로드 시작
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        showSuccess('마인드맵이 파일로 저장되었습니다.');
+      }
+      
+      // 파일에서 마인드맵 불러오기
+      function uploadMindMap(file) {
+        if (!file) return;
+        
+        if (isEditingNode) {
+          showError('텍스트 편집을 먼저 완료해주세요.');
+          return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          try {
+            const data = JSON.parse(e.target.result);
+            
+            if (data.nodes && data.edges) {
+              // 데이터 업데이트
+              nodes = data.nodes;
+              edges = data.edges;
+              
+              // 현재 Gist ID 초기화 (새로운 파일이므로)
+              currentGistId = null;
+              
+              // UI 업데이트
+              selectedNode = null;
+              updateSelectedNodeStatus();
+              renderMindMap();
+              
+              showSuccess('마인드맵을 성공적으로 불러왔습니다.');
+            } else {
+              showError('유효하지 않은 마인드맵 파일입니다.');
+            }
+          } catch (error) {
+            console.error('파일 불러오기 오류:', error);
+            showError('파일을 불러오는 중 오류가 발생했습니다: ' + error.message);
+          }
+        };
+        
+        reader.readAsText(file);
+      }
+      
+      // 마인드맵 데이터 로컬 저장
+      function saveToLocalStorage() {
+        try {
+          localStorage.setItem('mindMapNodes', JSON.stringify(nodes));
+          localStorage.setItem('mindMapEdges', JSON.stringify(edges));
+          localStorage.setItem('mindMapCurrentGistId', currentGistId || '');
+          console.log('마인드맵 데이터가 로컬 스토리지에 저장되었습니다.');
+        } catch (error) {
+          console.error('로컬 스토리지 저장 오류:', error);
+        }
+      }
+      
+      // 마인드맵 데이터 로컬에서 불러오기
+      function loadFromLocalStorage() {
+        try {
+          const savedNodes = localStorage.getItem('mindMapNodes');
+          const savedEdges = localStorage.getItem('mindMapEdges');
+          const savedGistId = localStorage.getItem('mindMapCurrentGistId');
+          
+          if (savedNodes && savedEdges) {
+            nodes = JSON.parse(savedNodes);
+            edges = JSON.parse(savedEdges);
+            
+            if (savedGistId && savedGistId !== '') {
+              currentGistId = savedGistId;
+            }
+            
+            renderMindMap();
+            return true;
+          }
+        } catch (error) {
+          console.error('로컬 스토리지 불러오기 오류:', error);
+        }
+        return false;
+      }
+      
+      // 모달 관련 함수들
+      // 모달 열기
+      function openModal() {
+        saveModal.style.display = 'block';
+        gistNameInput.focus();
+      }
+      
+      // 모달 닫기
+      function closeModal() {
+        saveModal.style.display = 'none';
+      }
+      
+      // 배경 클릭 시 선택 해제
+      mindMap.addEventListener('click', (e) => {
+        if (e.target === mindMap) {
+          selectedNode = null;
+          updateSelectedNodeStatus();
+          removeContextMenu();
+          renderMindMap();
+        }
+      });
+
+      // 새 노드 추가 버튼 클릭 핸들러
+      addNodeBtn.addEventListener('click', () => {
+        if (isEditingNode) return; // 편집 중이면 실행하지 않음
+        
+        if (nodes.length === 0) {
+          initMindMap();
+        } else if (selectedNode) {
+          addChildNode(selectedNode);
+        } else {
+          showError('노드를 먼저 선택해주세요');
+        }
+      });
+      
+      // 노드 편집 버튼 클릭 핸들러
+      editNodeBtn.addEventListener('click', () => {
+        if (isEditingNode) return; // 이미 편집 중이면 무시
+        
+        if (selectedNode) {
+          const nodeElements = mindMap.querySelectorAll('.mind-map-node');
+          let targetNodeEl = null;
+          
+          for (let i = 0; i < nodeElements.length; i++) {
+            if (nodeElements[i].dataset.id === selectedNode) {
+              targetNodeEl = nodeElements[i];
+              break;
+            }
+          }
+          
+          if (targetNodeEl) {
+            enableNodeEditing(selectedNode, targetNodeEl);
+          }
+        } else {
+          showError('편집할 노드를 먼저 선택해주세요');
+        }
+      });
+      
+      // 초기화 버튼 클릭 핸들러
+      clearBtn.addEventListener('click', () => {
+        if (isEditingNode) {
+          showError('텍스트 편집을 먼저 완료해주세요.');
+          return;
+        }
+        
+        if (confirm('정말 마인드맵을 초기화하시겠습니까?')) {
+          initMindMap();
+          // 현재 Gist ID 초기화
+          currentGistId = null;
+          // 로컬 스토리지에서도 제거
+          localStorage.removeItem('mindMapNodes');
+          localStorage.removeItem('mindMapEdges');
+          localStorage.removeItem('mindMapCurrentGistId');
+        }
+      });
+      
+      // GitHub Gist 저장 버튼 클릭 핸들러
+      saveGistBtn.addEventListener('click', () => {
+        if (isEditingNode) {
+          showError('텍스트 편집을 먼저 완료해주세요.');
+          return;
+        }
+        
+        // 이름 입력 모달 표시
+        openModal();
+      });
+      
+      // 모달 저장 버튼 클릭 핸들러
+      saveGistConfirm.addEventListener('click', () => {
+        const name = gistNameInput.value.trim() || '마인드맵';
+        closeModal();
+        saveMindMapToGist(name);
+      });
+      
+      // 모달 닫기 버튼 클릭 핸들러
+      modalClose.addEventListener('click', closeModal);
+      
+      // 모달 외부 클릭 시 닫기
+      window.addEventListener('click', (e) => {
+        if (e.target === saveModal) {
+          closeModal();
+        }
+      });
+      
+      // GitHub Gist 목록 버튼 클릭 핸들러
+      loadGistBtn.addEventListener('click', loadGistList);
+      
+      // 파일 다운로드 버튼 클릭 핸들러
+      downloadBtn.addEventListener('click', downloadMindMap);
+      
+      // 파일 업로드 변경 핸들러
+      uploadFileInput.addEventListener('change', (e) => {
+        uploadMindMap(e.target.files[0]);
+        // 파일 선택 초기화 (같은 파일 다시 선택할 수 있도록)
+        e.target.value = '';
+      });
+      
+      // 엔터 키 눌렀을 때 모달 저장 실행
+      gistNameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          saveGistConfirm.click();
+        }
+      });
+      
+      // 자동 저장 기능 (5초마다)
+      setInterval(saveToLocalStorage, 5000);
+      
+      // 초기화
+      if (!loadFromLocalStorage()) {
+        initMindMap();
+      } else {
+        updateSelectedNodeStatus();
+        showSuccess('이전 작업이 복원되었습니다.');
+      }
+      
+      // 전체 페이지 키보드 이벤트 핸들러 (단축키)
+      document.addEventListener('keydown', (e) => {
+        // 편집 중이나 모달 표시 중에는 단축키 무시
+        if (isEditingNode || saveModal.style.display === 'block') return;
+        
+        // Delete 키: 선택된 노드 삭제
+        if (e.key === 'Delete' && selectedNode && selectedNode !== 'root') {
+          deleteNode(selectedNode);
+        }
+        
+        // F2 키: 선택된 노드 편집
+        if (e.key === 'F2' && selectedNode) {
+          const nodeElements = mindMap.querySelectorAll('.mind-map-node');
+          let targetNodeEl = null;
+          
+          for (let i = 0; i < nodeElements.length; i++) {
+            if (nodeElements[i].dataset.id === selectedNode) {
+              targetNodeEl = nodeElements[i];
+              break;
+            }
+          }
+          
+          if (targetNodeEl) {
+            enableNodeEditing(selectedNode, targetNodeEl);
+          }
+        }
+        
+        // Insert 키: 새 노드 추가
+        if (e.key === 'Insert' && selectedNode) {
+          addChildNode(selectedNode);
+        }
+        
+        // Ctrl+S 키: 저장
+        if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          if (githubToken) {
+            saveGistBtn.click();
+          } else {
+            downloadBtn.click();
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>
